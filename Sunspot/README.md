@@ -7,9 +7,9 @@ We are using [Balsam](https://balsam.readthedocs.io/en/latest/) to run a Llama L
 
 ## Table of Contents
 
-*[Setup Llama70B](#setup-llama70b-and-balsam-environments)
-*[Create Balsam Site in remote and local](#create-balsam-sites-in-remote-or-local-and-start)
-*[Run the app](#run-the-app-and-submit-jobs)
+* [Setup Llama70B](#setup-llama70b-and-balsam-environments)
+* [Create Balsam Site in remote and local](#create-balsam-sites-in-remote-or-local-and-start)
+* [Run the app](#run-the-app-and-submit-jobs)
 
 ### Setup Llama70B and Balsam environments
 
@@ -85,11 +85,11 @@ python3 define_app.py
 python3 define_jobs.py
 ```
 
-:Note: This should start submitting jobs. From the [define_jobs.py](define_jobs.py) file, change the `df = df.loc[0:999] #change this to run all` to fetch all 19k proteins. The app also as of now runs 100 proteins per instance. Change the batch size `self.get_word_batches(df,100)` to increase as needed. You can also make 3 instance run on one node by changing this `node_packing_count = 1 #change this to set number of jobs in parallel on same node; set to 3 once fixed` once it's fixed on Sunspot.
+> _Note:_ This should start submitting jobs. From the [define_jobs.py](define_jobs.py) file, change the `df = df.loc[0:999] #change this to run all` to fetch all 19k proteins. The app also as of now runs 100 proteins per instance. Change the batch size `self.get_word_batches(df,100)` to increase as needed. You can also make 3 instance run on one node by changing this `node_packing_count = 1 #change this to set number of jobs in parallel on same node; set to 3 once fixed` once it's fixed on Sunspot.
 
-:Note: Change the conda environment within the [define_app.py](define_app.py) in shell_preamble as well to your custom environment if needed.
+> _Note:_ Change the conda environment within the [define_app.py](define_app.py) in shell_preamble as well to your custom environment if needed.
 
-2. Before you start running the polling app on your local system. Change the output path to the path where [define_jobs.py](define_jobs.py) writes the output to, inside[define_polling_app.py](define_polling_app.py) file
+2. Before you start running the polling app on your local system. Change the directory parameter inside [define_polling_app.py](define_polling_app.py) file to the path where [define_jobs.py](define_jobs.py) writes the output to.
 
 ```bash
 jobs = [
@@ -110,4 +110,5 @@ jobs = [
 python3 define_polling_app.py
 ```
 
-The Polling app should keep fetching results as they are generated remotely. Right now the polling app will create 1000 jobs one for each protein and poll each as and when it finds. Greater than 2000 proteins or jobs makes it slow.Change the `df['search_words'].loc[0:999]` as to poll more proteins
+> _Note:_ The Polling app should keep fetching results as they are generated remotely. Right now the polling app will create 1000 jobs one for each protein and poll each as and when it finds. Greater than 2000 proteins or jobs makes it slow.Change the `df['search_words'].loc[0:999]` as to poll more proteins
+
