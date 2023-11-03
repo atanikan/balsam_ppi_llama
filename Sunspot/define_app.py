@@ -2,7 +2,7 @@ from balsam.api import ApplicationDefinition, Site, site_config
 import os
 import re
 
-site_name = "sunspot-site"
+site_name = "llama-science"
 app_path = os.getcwd()
 application_env = os.path.join(app_path,"set_application_env.sh")
 proteins_file_path = os.path.join(app_path,"proteins.csv")
@@ -102,8 +102,7 @@ class LlamaBashApp(ApplicationDefinition):
         self.return_job_data()
     
     def shell_preamble(self):
-        return f'source /soft/datascience/conda-2023-01-31/miniconda3/bin/activate && conda activate /gila/Aurora_deployment/conda_env_llm/balsam_llama_env
- && source {application_env}'
+        return f'source /soft/datascience/conda-2023-01-31/miniconda3/bin/activate && conda activate /gila/Aurora_deployment/conda_env_llm/balsam_llama_env && source {application_env}'
 
     
     
