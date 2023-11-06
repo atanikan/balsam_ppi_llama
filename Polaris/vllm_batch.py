@@ -3,6 +3,9 @@ import ray
 from argparse import ArgumentParser
 import time
 
+#CHANGE os.environ["HF_HOME"] = "/lus/eagle/projects/CVD-Mol-AI/braceal/cache/huggingface"
+
+
 def main():
     total_start_time = time.time()
     parser = ArgumentParser()
@@ -22,7 +25,7 @@ def main():
     print("List of prompts>>", list_prompts)
     model_start_time = time.time()
     sampling_params = SamplingParams(max_tokens=1024)
-    llm = LLM(model="meta-llama/Llama-2-70b-chat-hf",tokenizer='hf-internal-testing/llama-tokenizer',tensor_parallel_size=4,download_dir='/grand/datascience/atanikanti/vllm_service/',seed=123321213)
+    llm = LLM(model="meta-llama/Llama-2-70b-chat-hf",tokenizer='hf-internal-testing/llama-tokenizer',tensor_parallel_size=4,download_dir='/grand/datascience/',seed=123321213) #change dir
     print("Time for model initialisation: Time: %.6f sec" % (time.time() - model_start_time))
     print("Starting to generate")
     return_out = []
