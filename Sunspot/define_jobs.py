@@ -1,4 +1,3 @@
-from ast import List
 from balsam.api import Job, Site, BatchJob
 import os
 import pandas as pd
@@ -6,7 +5,7 @@ import time
 
 total_app_start = time.time()
 
-site_name = "sunspot-site"
+site_name = "llama-science"
 app_path = os.getcwd()
 proteins_file_path = os.path.join(app_path,"proteins.csv")
 
@@ -64,7 +63,7 @@ class JobDefine():
             num_nodes=1,
             ranks_per_node=4,
             gpus_per_rank=1,
-            tags={"target":batch},
+            tags={"target":batch,"app_type":"llama"},
             node_packing_count = 1 #change this to set number of jobs in parallel on same node; set to 3 once fixed
         )for n, batch, ccl, cpu_bind in self.get_word_batches(df,100)] #Runs in batches of 100 proteins
         #for n,word in enumerate(df['search_words'])]
@@ -76,9 +75,10 @@ jobs = jobdefine.define_job()
 site = Site.objects.get(site_name)
 BatchJob.objects.create(
     site_id=site.id,
-    num_nodes=1,
-    wall_time_min=60,
+    num_nodes=10,
+    wall_time_min=120,
     job_mode="mpi",
     project="Aurora_deployment",
     queue="workq",
+    filter_tags={"app_type":"llama"}
 )
