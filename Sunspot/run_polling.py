@@ -6,7 +6,7 @@ import pandas as pd
 import re
 
 # Test iteration number
-test_iter = 1
+test_iter = 2
 
 # Site Names
 polling_site_name = "llama-polling"
@@ -112,7 +112,7 @@ def validate_and_generate_dot(protein1, protein2, edge):
         else:
             new_content = content.replace('}', edge + ';\n}')
             print(protein1,"->", protein2,";") #support in both
-        print("dot content:",new_content)
+        #print("dot content:",new_content)
         with open(dot_file_path, 'w') as file:
             file.write(new_content)
 
@@ -202,29 +202,31 @@ while len(queried_llama_job_ids) < total_llama_job_num or len(jobs) > 0:
 
         job_ids = [j.id for j in jobs]
         for aj in auto_polling_jobs:
-            if "found_protein" not in aj.data.keys() and aj.id not in job_ids:
+            # Only include jobs that have not yet found a protein and isn't already being monitored
+            if "found_protein" not in aj.data.keys():
                 jobs.append(aj)
+            elif aj.id not in job_ids:
+                if aj.data["found_protein"] not in finished_proteins:
+                    jobs.append(aj)
 
-
-    if time.time() - monitor_start_time > monitor_interval:
-        print("Waiting for new polling results")
-        print(f"Tracking {len(jobs)} polling jobs")
-        monitor_start_time = time.time()
+    print(f"Tracking {len(jobs)} polling jobs")
+    time.sleep(monitor_interval)
     #for job in Job.objects.as_completed(jobs):
     
     # Loop over polling jobs
     for n,job in enumerate(jobs):
         if job.done() and "found_protein" in job.data.keys():
-            print(job.data)
             protein = job.data['found_protein']
-
+            try:
+                output = job.result()
+                output = output.decode('utf-8')
+            except Exception as e:
+                print(f"Results could not be pulled for job {job.id} for protein {protein}")
+                print(f"Exception: {e}")
+                continue
+           
             finished_proteins.append(protein) # add protein to list of finished proteins
             
-            output = job.result()
-            output = output.decode('utf-8')
-           
-            print(output)
-
             filtered_proteins = find_filtered_proteins(protein,output)
             with open("interactions.txt", "a") as f:
                 if filtered_proteins:
@@ -247,6 +249,7 @@ while len(queried_llama_job_ids) < total_llama_job_num or len(jobs) > 0:
             break
 
     new_polling_jobs = []
+print(f"Finished {len(finished_proteins)} proteins")
 print(f"Total time for a total of {count_prots} proteins to finish processing {time.time() - total_app_start:.3f} secs")
         
 

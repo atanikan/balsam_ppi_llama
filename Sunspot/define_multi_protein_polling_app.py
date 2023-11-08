@@ -34,7 +34,6 @@ class MultiProteinBatchPollingApp(ApplicationDefinition):
     def postprocess(self):
         
         parameters = self.job.get_parameters()
-        print("Postprocess",parameters)
 
         stdout_file = "./job.out"
         found_protein = ""
@@ -44,7 +43,6 @@ class MultiProteinBatchPollingApp(ApplicationDefinition):
                 if "Found protein" in line:
                     line_list = line.split()
                     found_protein = line_list[-1]
-                    print("Found protein",found_protein)
 
         
         self.job.data = {"found_protein":found_protein}
@@ -54,21 +52,17 @@ class MultiProteinBatchPollingApp(ApplicationDefinition):
         if found_protein in new_protein_list:
             new_protein_list.remove(found_protein)
 
-        print("Postprocess",new_protein_list)
-
         if len(new_protein_list) > 0:
 
             new_params = self.job.get_parameters()
             new_params["protein_list"] = new_protein_list
-            print("new_params",new_params)
+           
             new_tags = self.job.tags
 
             previous_workdir = str(self.job.workdir)
             previous_workdir_list = previous_workdir.split("/")
             workdir_iter = int(previous_workdir_list[-1])+1
             new_workdir = "/".join(previous_workdir_list[0:-1]+[str(workdir_iter)])
-
-            print(dir(self.job))
 
             new_job = Job.objects.create(app_id=self.job.app_id,
                           site_name=site_name,
@@ -78,16 +72,19 @@ class MultiProteinBatchPollingApp(ApplicationDefinition):
                             node_packing_count=self.job.node_packing_count,
                 )
             new_job.save()
+            print(f"Postprocess created next job id={new_job.id}\n")
+        else:
+            print(f"Postprocess did not create new polling job\n")
         self.job.state = "POSTPROCESSED"
 
 
-    def run(self, directory, protein_list, timeout=20*60):
+    def run(self, directory, protein_list, timeout=60*60):
         """
             Monitors and extracts content between ** START {pattern} ** and ** END {pattern} ** from all files in a directory.
             Parameters:
-                directory_list (list): The path of the directory to monitor and search in.
-                pattern (str): The pattern to search between.
-                timeout (int, optional): Time in seconds to monitor the directory. Defaults to 15*60 seconds (15 minutes).
+                directory (str): The path of the directory to search for results.
+                protein_list (list): The list of proteins to look for
+                timeout (int, optional): Time in seconds to monitor the directory. Defaults to 60*60 seconds (1 hour).
             Returns:
                 list: A list of strings, where each string is the content between ** START {pattern} ** and ** END {pattern} **.
                     Returns an empty list if the pattern is not found within the timeout.
