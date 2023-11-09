@@ -80,6 +80,5 @@ BatchJob.objects.create(
     wall_time_min=120,
     job_mode="mpi",
     project="Aurora_deployment",
-    queue="workq",
-    filter_tags={"app_type":"llama"}
+    queue="workq"
 )
