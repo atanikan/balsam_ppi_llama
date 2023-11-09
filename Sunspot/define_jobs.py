@@ -70,3 +70,16 @@ class JobDefine():
         #for n,word in enumerate(df['search_words'])]
         jobs = Job.objects.bulk_create(jobs)
         return jobs
+
+jobdefine = JobDefine()
+jobs = jobdefine.define_job()
+site = Site.objects.get(site_name)
+BatchJob.objects.create(
+    site_id=site.id,
+    num_nodes=3,
+    wall_time_min=120,
+    job_mode="mpi",
+    project="Aurora_deployment",
+    queue="workq",
+    filter_tags={"app_type":"llama"}
+)

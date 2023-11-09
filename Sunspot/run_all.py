@@ -1,6 +1,6 @@
 from define_app import LlamaBashApp
 from define_jobs import JobDefine
-from local_dot_construction import LocalDotConstruction
+from Sunspot.local_dot_construction_later import LocalDotConstruction
 from balsam.api import Job, Site, BatchJob
 import os
 import pandas as pd
@@ -23,32 +23,32 @@ check_unique_interaction = {}
 df = pd.read_csv(proteins_file_path)
 proteins_list = df['search_words'].tolist()
 write_lock = multiprocessing.Lock()
-llamabashapp = LlamaBashApp()
-llamabashapp.sync()
+# llamabashapp = LlamaBashApp()
+# llamabashapp.sync()
 
-define_jobs = JobDefine()
-jobs = define_jobs.define_job()
-llama_site = Site.objects.get(llama_site_name)
-BatchJob.objects.create(
-    site_id=llama_site.id,
-    num_nodes=3,
-    wall_time_min=120,
-    job_mode="mpi",
-    project="Aurora_deployment",
-    queue="debug",
-    filter_tags={"app_type":"llama"}
-)     
+# job_def = JobDefine()
+# jobs = job_def.define_job()
+# llama_site = Site.objects.get(llama_site_name)
+# BatchJob.objects.create(
+#     site_id=llama_site.id,
+#     num_nodes=3,
+#     wall_time_min=120,
+#     job_mode="mpi",
+#     project="Aurora_deployment",
+#     queue="workq",
+#     filter_tags={"app_type":"llama"}
+# )     
 
-llama_site = Site.objects.get(name=llama_site_name)
-llama_jobs = Job.objects.filter(site_id=llama_site.id)
-total_llama_job_num = llama_jobs.count()
+# llama_site = Site.objects.get(name=llama_site_name)
+# llama_jobs = Job.objects.filter(site_id=llama_site.id)
+# total_llama_job_num = llama_jobs.count()
 
-queried_llama_job_ids_count = 0
-while queried_llama_job_ids_count < total_llama_job_num:
-    llama_jobs_finished = Job.objects.filter(site_id=llama_site.id, state=["JOB_FINISHED"], tags={"app_type":"llama"})
-    queried_llama_job_ids_count = len(llama_jobs_finished)
-    local_dot = LocalDotConstruction('/data','llama_predictions.dot')
-    local_dot.run()
+# queried_llama_job_ids_count = 0
+# while queried_llama_job_ids_count < total_llama_job_num:
+#     llama_jobs_finished = Job.objects.filter(site_id=llama_site.id, state=["JOB_FINISHED"], tags={"app_type":"llama"})
+#     queried_llama_job_ids_count = len(llama_jobs_finished)
+local_dot = LocalDotConstruction('llama_predictions_new.dot','/Users/adityatanikanti/Codes/ten-iteration-per-protein/vLLMBashAppOutputFullten/')
+local_dot.run()
 
 print(f"Total time for to finish processing {time.time() - app_start_time:.3f} secs")
 
