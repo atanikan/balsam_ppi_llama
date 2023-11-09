@@ -21,6 +21,7 @@ st = pd.read_csv(string_file_path)
 st = st.reset_index(drop=True)
 check_unique_interaction = {}
 df = pd.read_csv(proteins_file_path)
+df = df.iloc[0:299]
 proteins_list = df['search_words'].tolist()
 write_lock = multiprocessing.Lock()
 
@@ -43,8 +44,27 @@ def search_patterns_in_file(folder, proteins_to_find, output_file, write_lock):
                                 interaction = validate_and_generate_dot(protein_to_find, other_protein)
                                 check_unique_interaction[edge] = protein_to_find
                                 with write_lock:
-                                    with open(output_file, 'a') as out_f:
-                                        out_f.write(interaction)
+                                    # Read the file content
+                                    with open(output_file, 'r') as file:
+                                        content = file.read()
+                                    
+                                    # Check if the content is not empty and the last character is indeed a "}"
+                                    if content and content[-1] == '}':
+                                        # Remove the last character
+                                        content = content[:-1]
+                                        # Add the "interaction object" and the closing "}"
+                                        content += f"{interaction}"
+                                        content += "\n}"
+                                        
+                                        # Write the modified content back to the file
+                                        with open(output_file, 'w') as file:
+                                            file.write(content)
+
+
+
+                                    #with open(output_file, 'a') as out_f:
+                                        #new_content = content.replace('}', edge + ' [color=red, penwidth=5.0];\n}')
+                                        #out_f.write(interaction)
     except FileNotFoundError:
         pass  # File might not exist yet
     return folder, check_unique_interaction
@@ -104,7 +124,7 @@ def worker_main(queue, output_file, write_lock):
         if folder is None:
             break  # Exit signal
         _, found_proteins = search_patterns_in_file(folder, proteins_to_find, output_file, write_lock)
-        queue.put((folder, proteins_to_find - set(list(found_proteins.values()))))
+        queue.put((folder, set(proteins_to_find) - set(list(found_proteins.values()))))
 
 def get_word_batches(df, batch_size=100):
         """
@@ -132,8 +152,8 @@ def extract_number(folder_name):
 
 def main():
     parser = ArgumentParser()
-    parser.add_argument('--output-path', default='/Users/adityatanikanti/Codes/ten-iteration-per-protein/vLLMBashAppOutputFullten/', type=str)
-    parser.add_argument('--dot-file', default='llama_predictions.dot', type=str)
+    parser.add_argument('--output-path', default='/home/alien/Documents/code/mount_remote_system/data2/LlamaBashAppOutput', type=str)
+    parser.add_argument('--dot-file', default='/home/alien/Documents/code/protein-graph-visualization-main/src/visg/static/data/interactions_full_run.dot', type=str)
     args = parser.parse_args()
     output_path = args.output_path
     output_file = args.dot_file
@@ -142,10 +162,12 @@ def main():
     last_read_positions = {folder: 0 for folder in folders}
     #proteins_to_find = {folder: frozenset(list(get_word_batches(df,100))) for folder in folders}
     #proteins_to_find = {folder: set(itertools.chain(*get_word_batches(df,100))) for folder in folders}
+    with open(output_file, 'w') as out_f:
+        out_f.write('digraph G {\n}')
     protein_batches = get_word_batches(df,100)
 
     proteins_to_find = {folder: next(protein_batches) for folder in folders}
-
+    print("p>>",proteins_to_find)
     # Create a manager for shared state between processes
     manager = multiprocessing.Manager()
     queue = manager.Queue()
@@ -171,7 +193,7 @@ def main():
             if proteins_to_find[folder]:  # If there are proteins left to find in this folder
                 queue.put((folder, proteins_to_find[folder]))
             else:
-                remaining_proteins -= proteins_to_find[folder]  # Update the set of remaining proteins
+                remaining_proteins = remaining_proteins.difference(proteins_to_find[folder])  # Update the set of remaining proteins
         time.sleep(5)  # Check every 5 seconds
 
     # Signal workers to exit
