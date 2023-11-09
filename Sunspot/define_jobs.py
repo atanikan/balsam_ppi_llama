@@ -56,7 +56,7 @@ class JobDefine():
     def define_job(self):
         df = pd.read_csv(proteins_file_path)
         # df.drop(0, inplace=True)
-        df = df.loc[0:999] #change this to run all
+        df = df.loc[0:299] #change this to run all
         jobs = [Job(app_id="LlamaBashApp",
             site_name=site_name,
             workdir=f'LlamaBashAppOutput/{n}',
@@ -76,9 +76,10 @@ jobs = jobdefine.define_job()
 site = Site.objects.get(site_name)
 BatchJob.objects.create(
     site_id=site.id,
-    num_nodes=1,
-    wall_time_min=60,
+    num_nodes=3,
+    wall_time_min=120,
     job_mode="mpi",
     project="Aurora_deployment",
     queue="workq",
+    filter_tags={"app_type":"llama"}
 )

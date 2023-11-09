@@ -4,7 +4,7 @@ import re
 
 site_name = "sunspot-site"
 app_path = os.getcwd()
-application_env = os.path.join(app_path,"set_application_env.sh")
+#application_env = os.path.join(app_path,"set_application_env.sh")
 proteins_file_path = os.path.join(app_path,"proteins.csv")
 import pandas as pd
 df = pd.read_csv(proteins_file_path, names=['search_words'])
@@ -102,11 +102,8 @@ class LlamaBashApp(ApplicationDefinition):
         self.return_job_data()
     
     def shell_preamble(self):
-        return f'source /soft/datascience/conda-2023-01-31/miniconda3/bin/activate && conda activate /gila/Aurora_deployment/conda_env_llm/balsam_llama_env
- && source {application_env}'
+        return f'source /soft/datascience/conda-2023-01-31/miniconda3/bin/activate && conda activate /gila/Aurora_deployment/conda_env_llm/balsam_llama_env && source /gila/Aurora_deployment/70B-acc_fix_for_ppi/set_application_env.sh'
 
-    
-    
     # def postprocess(self):
     #     print("Starting Postprocess")
     #     self.return_job_data()
