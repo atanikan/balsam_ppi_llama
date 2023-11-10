@@ -42,7 +42,7 @@ python3 define_jobs.py
 6. Before running build_dot_file.py ensure the path to dot file is `/home/alien/Documents/code/protein-graph-visualization-main/src/visg/static/data` and the fileystem is mounted and pointing correctly. This should be left running until it stops. If stopped and restarted it will rename the exisiting dot file at its location and create a new one from scratch.
 
 ```
-sshfs -o allow_other,default_permissions csimpson@sunspot.alcf.anl.gov:/lus/gila/projects/Aurora_deployment/anl_llama/demo/LlamaDemo/data/LlamaBashAppOutput ~/Documents/code/mount_remote_system/data
+sshfs -o cache=yes,kernel_cache,allow_other,default_permissions csimpson@sunspot.alcf.anl.gov:/lus/gila/projects/Aurora_deployment/anl_llama/demo/LlamaDemo/data/LlamaBashAppOutput ~/Documents/code/mount_remote_system/data
 cd /home/alien/Documents/code/balsam_ppi_llama/Sunspot
 python3 build_dot_file.py
 ```
