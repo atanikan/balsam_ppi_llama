@@ -1,7 +1,7 @@
 # Run Protein Protein Interaction using Balsam on Sunspot
 We are using [Balsam](https://balsam.readthedocs.io/en/latest/) to run a Llama LLM on Sunspot for finding Protein Protein interaction.
 
-Got to [notes for demo](./NOTES_FOR_DEMO.md) after this setup to run demo from a demo laptop. 
+Go to [notes for demo](./NOTES_FOR_DEMO.md) after this setup to run demo from a demo laptop. 
 
 Begin by cloning this repo on Sunspot.
 
