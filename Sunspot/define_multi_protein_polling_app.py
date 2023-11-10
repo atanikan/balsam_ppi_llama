@@ -4,7 +4,7 @@ import time
 import pandas as pd
 import re
 
-site_name = "llama-polling"
+site_name = "llama-science"
 
 class MultiProteinBatchPollingApp(ApplicationDefinition):
     site = site_name

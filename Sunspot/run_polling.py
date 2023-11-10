@@ -6,10 +6,10 @@ import pandas as pd
 import re
 
 # Test iteration number
-test_iter = 2
+test_iter = 105
 
 # Site Names
-polling_site_name = "llama-polling"
+polling_site_name = "llama-science"
 llama_site_name = "llama-science"
 
 # If you are running your polling from the same site as the llama jobs,
@@ -132,8 +132,6 @@ def find_filtered_proteins(protein,output):
     return filtered_proteins
 
 job_start_time = time.time()
-monitor_start_time = time.time()
-monitor_interval = 30
 count_prots = 0
 
 polling_site = Site.objects.get(polling_site_name)
@@ -144,7 +142,9 @@ total_llama_job_num = llama_jobs.count()
 
 queried_llama_job_ids = []
 jobs = []
+
 finished_proteins = []
+processed_job_ids = []
 
 while len(queried_llama_job_ids) < total_llama_job_num or len(jobs) > 0:
 
@@ -193,29 +193,39 @@ while len(queried_llama_job_ids) < total_llama_job_num or len(jobs) > 0:
             queried_llama_job_ids.append(j.id)
     jobs+=new_polling_jobs
 
-
+    
     # Add polling jobs auto created by postprocessing hook of previous polling jobs
     for llama_id in queried_llama_job_ids:
         auto_polling_jobs = Job.objects.filter(site_id=polling_site.id, 
                                                 state=["PREPROCESSED","RUNNING","JOB_FINISHED","RESTART_READY"],
-                                                tags={"app_type":"multi_polling","target_batch":llama_id})
-
-        job_ids = [j.id for j in jobs]
+                                                tags={"app_type":"multi_polling","target_batch":llama_id,"test_iter":test_iter})
+        #print(f"found {len(auto_polling_jobs)} auto polling jobs")
+        jobs_ids = [j.id for j in jobs]
         for aj in auto_polling_jobs:
             # Only include jobs that have not yet found a protein and isn't already being monitored
-            if "found_protein" not in aj.data.keys():
+            if aj.id not in jobs_ids and aj.id not in processed_job_ids:
                 jobs.append(aj)
-            elif aj.id not in job_ids:
-                if aj.data["found_protein"] not in finished_proteins:
-                    jobs.append(aj)
+
+            # if aj.id not in job_ids and "found_protein" in aj.data.keys():
+            #     if aj.data["found_protein"] not in finished_proteins:
+            #         jobs.append(aj)
+            
+            # elif "found_protein" not in aj.data.keys():
+            #     if aj.data["found_protein"] not in finished_proteins:
+            #         jobs.append(aj)
 
     print(f"Tracking {len(jobs)} polling jobs")
-    time.sleep(monitor_interval)
-    #for job in Job.objects.as_completed(jobs):
+
+    jobs_ids = [j.id for j in jobs]
     
-    # Loop over polling jobs
-    for n,job in enumerate(jobs):
-        if job.done() and "found_protein" in job.data.keys():
+    finished_jobs = Job.objects.filter(site_id=polling_site.id, 
+                                       id=jobs_ids,
+                                       state=["RUNNING","JOB_FINISHED","RESTART_READY"],
+                                       tags={"app_type":"multi_polling","test_iter":test_iter})
+
+    # Loop over polling jobs with results    
+    for n,job in enumerate(finished_jobs):
+        if "found_protein" in job.data.keys():
             protein = job.data['found_protein']
             try:
                 output = job.result()
@@ -224,7 +234,6 @@ while len(queried_llama_job_ids) < total_llama_job_num or len(jobs) > 0:
                 print(f"Results could not be pulled for job {job.id} for protein {protein}")
                 print(f"Exception: {e}")
                 continue
-           
             finished_proteins.append(protein) # add protein to list of finished proteins
             
             filtered_proteins = find_filtered_proteins(protein,output)
@@ -245,8 +254,15 @@ while len(queried_llama_job_ids) < total_llama_job_num or len(jobs) > 0:
             print(f"Total time for {protein} to finish processing {time.time() - job_start_time:.3f} secs")
             job_start_time = time.time()
             count_prots = count_prots + 1
-            jobs.pop(n) # Remove polling job from list of jobs to monitor
-            break
+
+            processed_job_ids.append(job.id)
+            
+    for job in jobs:
+        if job.id in processed_job_ids:
+            jobs.remove(job)
+
+
+
 
     new_polling_jobs = []
 print(f"Finished {len(finished_proteins)} proteins")
