@@ -142,7 +142,7 @@ def find_interactions(directory, proteins, known_proteins, interactions_dict):
                                             with open(dot_file, 'w') as file:
                                                 file.write(content)
                         if not match_found:
-                            interaction = f"{protein} -> None;\n"
+                            interaction = f"{protein} -> {{}};\n"
                             if interaction not in interactions_dict:
                                 interactions_dict[interaction] = True
                                 with open(dot_file, 'r') as file:

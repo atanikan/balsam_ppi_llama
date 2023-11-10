@@ -89,9 +89,8 @@ class LlamaBashApp(ApplicationDefinition):
         self.return_job_data()
 
     def handle_timeout(self):
-	print("Starting Handle Timeout block")
-        # Sorry, not retrying slow runs:
-	self.return_job_data()
+        print("Starting Handle Timeout block")
+        self.return_job_data()
 
     def shell_preamble(self):
         return f'source /soft/datascience/conda-2023-01-31/miniconda3/bin/activate && conda activate /gila/Aurora_deployment/conda_env_llm/balsam_llama_env && source /gila/Aurora_deployment/70B-acc_fix_for_ppi/set_application_env.sh'
