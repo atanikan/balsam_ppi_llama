@@ -6,7 +6,7 @@ import time
 
 total_app_start = time.time()
 
-site_name = "LlammaDemo"
+site_name = "LlamaDemo"
 app_path = os.getcwd()
 proteins_file_path = os.path.join(app_path,"proteins.csv")
 
@@ -56,7 +56,7 @@ class JobDefine():
     def define_job(self):
         df = pd.read_csv(proteins_file_path)
         # df.drop(0, inplace=True)
-        df = df.loc[0:299] #change this to run all
+        df = df.loc[0:299] #change this to run all; comment this out to run everything
         jobs = [Job(app_id="LlamaBashApp",
             site_name=site_name,
             workdir=f'LlamaBashAppOutput/{n}',
