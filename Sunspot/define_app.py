@@ -3,7 +3,7 @@ import os
 import re
 import pandas as pd
 
-site_name = "LlammaDemo"
+site_name = "LlamaDemo"
 app_path = os.getcwd()
 proteins_file_path = os.path.join(app_path,"proteins.csv")
 df = pd.read_csv(proteins_file_path, names=['search_words'])

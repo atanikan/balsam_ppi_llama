@@ -9,7 +9,7 @@ import shutil
 
 total_app_start = time.time()
 
-llama_site_name = "Llamademo"
+llama_site_name = "LlamaDemo"
 llama_site = Site.objects.get(llama_site_name)
 queried_llama_job_ids = []
 proteins_to_find = {}
