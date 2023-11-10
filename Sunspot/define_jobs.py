@@ -6,7 +6,7 @@ import time
 
 total_app_start = time.time()
 
-site_name = "sunspot-site"
+site_name = "LlammaDemo"
 app_path = os.getcwd()
 proteins_file_path = os.path.join(app_path,"proteins.csv")
 
@@ -74,11 +74,11 @@ class JobDefine():
 jobdefine = JobDefine()
 jobs = jobdefine.define_job()
 site = Site.objects.get(site_name)
-BatchJob.objects.create(
-    site_id=site.id,
-    num_nodes=3,
-    wall_time_min=120,
-    job_mode="mpi",
-    project="Aurora_deployment",
-    queue="workq"
-)
+#BatchJob.objects.create(
+#    site_id=site.id,
+#    num_nodes=3,
+#    wall_time_min=120,
+#    job_mode="mpi",
+#    project="Aurora_deployment",
+#    queue="workq"
+#)
