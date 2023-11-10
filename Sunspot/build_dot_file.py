@@ -5,9 +5,9 @@ import time
 import multiprocessing
 from multiprocessing import Manager, Lock
 import pandas as pd
+import shutil
 
-
-llama_site_name = "LlammaDemo"
+llama_site_name = "Llamademo"
 llama_site = Site.objects.get(llama_site_name)
 queried_llama_job_ids = []
 proteins_to_find = {}
@@ -44,16 +44,13 @@ def proteins_to_process():
     return proteins_to_find
 
 def move_current_dot_to_backup():
-    directory_for_previous_iterations = os.path.join(os.path.dirname(dot_file),"prev_runs")
-    # Create the backup directory if it does not exist
-    if not os.path.exists(directory_for_previous_iterations):
-        os.makedirs(directory_for_previous_iterations)
+    directory_for_previous_iterations = os.path.dirname(dot_file)
     # List all files in the backup directory
     files_in_backup_dir = [f for f in os.listdir(directory_for_previous_iterations) if os.path.isfile(os.path.join(directory_for_previous_iterations, f))]
     number_to_append = len(files_in_backup_dir) + 1
     file_to_move = dot_file
     new_file_name = f"{file_to_move.split('.')[0]}_{number_to_append}.{file_to_move.split('.')[-1]}"
-    os.rename(file_to_move, os.path.join(directory_for_previous_iterations, new_file_name)) 
+    shutil.move(file_to_move, os.path.join(directory_for_previous_iterations, new_file_name)) 
     with open(dot_file, 'w') as out_f:
         out_f.write('digraph G {\n}')
 
@@ -118,17 +115,36 @@ def find_interactions(directory, proteins, known_proteins, interactions_dict):
                 for protein in proteins_to_find:
                     print("Looking for protein:",protein)
                     pattern = r"\*\* START " + protein + r" \*\*(.*?)\*\* END " + protein + r" \*\*"
-                    matches = re.findall(pattern, content, re.DOTALL)                    
-                    for match in matches:
-                        for known_protein in known_proteins:
-                            if re.search(r'\b' + re.escape(known_protein) + r'\b', match) and known_protein != protein:
-                                #edge = f"{protein_to_find} -> {other_protein}"
-                                interaction = f"{protein} -> {known_protein}"
-                                interaction = validate_and_generate_dot(protein, known_protein)
-                                if interaction not in interactions_dict:
-                                    interactions_dict[interaction] = True
-                                    with open(dot_file, 'r') as file:
-                                        content = file.read()
+                    matches = re.findall(pattern, content, re.DOTALL)
+                    if matches:
+                        match_found = False
+                        for match in matches:
+                            for known_protein in known_proteins:
+                                if re.search(r'\b' + re.escape(known_protein) + r'\b', match) and known_protein != protein:
+                                    #edge = f"{protein_to_find} -> {other_protein}"
+                                    match_found = True
+                                    interaction = f"{protein} -> {known_protein}"
+                                    interaction = validate_and_generate_dot(protein, known_protein)
+                                    if interaction not in interactions_dict:
+                                        interactions_dict[interaction] = True
+                                        with open(dot_file, 'r') as file:
+                                            content = file.read()
+                                        # Check if the content is not empty and the last character is indeed a "}"
+                                        if content and content[-1] == '}':
+                                            # Remove the last character
+                                            content = content[:-1]
+                                            # Add the "interaction object" and the closing "}"
+                                            content += f"{interaction}"
+                                            content += "}"
+                                            # Write the modified content back to the file
+                                            with open(dot_file, 'w') as file:
+                                                file.write(content)
+                        if not match_found:
+                            interaction = f"{protein} -> None;\n"
+                            if interaction not in interactions_dict:
+                                interactions_dict[interaction] = True
+                                with open(dot_file, 'r') as file:
+                                    content = file.read()
                                     # Check if the content is not empty and the last character is indeed a "}"
                                     if content and content[-1] == '}':
                                         # Remove the last character
@@ -136,12 +152,10 @@ def find_interactions(directory, proteins, known_proteins, interactions_dict):
                                         # Add the "interaction object" and the closing "}"
                                         content += f"{interaction}"
                                         content += "}"
-                                        
                                         # Write the modified content back to the file
                                         with open(dot_file, 'w') as file:
                                             file.write(content)
-                                proteins_found.add(protein)
-
+                        proteins_found.add(protein)
                 proteins_to_find -= proteins_found  # Remove found proteins from the search set.
 
         time.sleep(5)  # Wait for some time before checking again to reduce resource usage.
