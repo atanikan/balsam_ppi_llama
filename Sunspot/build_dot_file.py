@@ -7,6 +7,8 @@ from multiprocessing import Manager, Lock
 import pandas as pd
 import shutil
 
+total_app_start = time.time()
+
 llama_site_name = "Llamademo"
 llama_site = Site.objects.get(llama_site_name)
 queried_llama_job_ids = []
@@ -176,6 +178,7 @@ def main():
         result.get()
     pool.close()
     pool.join()
+    print(f"Total time to finish processing {time.time() - total_app_start:.3f} secs")
 
 if __name__ == "__main__":
     main()
