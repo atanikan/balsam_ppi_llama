@@ -7,7 +7,7 @@ from multiprocessing import Manager, Lock
 import pandas as pd
 
 
-llama_site_name = "sunspot-site"
+llama_site_name = "LlammaDemo"
 llama_site = Site.objects.get(llama_site_name)
 queried_llama_job_ids = []
 proteins_to_find = {}
@@ -23,11 +23,11 @@ st = st.reset_index(drop=True)
 known_proteins = df['search_words'].tolist()
 
 
-#output_path = '/home/alien/Documents/code/mount_remote_system/data2/LlamaBashAppOutput' #change
-#dot_file = '/home/alien/Documents/code/protein-graph-visualization-main/src/visg/static/data/interactions_full_run.dot' #change
+output_path = '/home/alien/Documents/code/mount_remote_system/data' #change
+dot_file = '/home/alien/Documents/code/protein-graph-visualization-main/src/visg/static/data/interactions_full_run.dot' #change
 #proteins_to_find = {folder: next(protein_batches) for folder in folders}
-output_path = '/Users/adityatanikanti/Codes/ten-iteration-per-protein/vLLMBashAppOutputFullten'
-dot_file = 'interactions_full_run.dot'
+#output_path = '/Users/adityatanikanti/Codes/ten-iteration-per-protein/vLLMBashAppOutputFullten'
+#dot_file = 'interactions_full_run.dot'
 
 def proteins_to_process():
     llama_jobs_ready_for_polling = Job.objects.filter(site_id=llama_site.id, 
@@ -103,21 +103,20 @@ def validate_and_generate_dot(protein1, protein2):
     # master_dot[edge] = new_content
     # #return master_dot[edge]
     # return (interaction, master_dot[edge]) 
-    print("new>>>",new_content)
+    print("Adding to dot file:",new_content)
     return new_content
 
 def find_interactions(directory, proteins, known_proteins, interactions_dict):
     print(f"Checking directory: {directory}")  # Debugging print
     job_file = os.path.join(directory, 'job.out')
     proteins_to_find = set(proteins)  # Set of proteins to find interactions for.
-    print("here")
     while proteins_to_find:
         if os.path.exists(job_file):
             with open(job_file, 'r') as file:
                 content = file.read()
                 proteins_found = set()  # Keep track of proteins found in this iteration.
                 for protein in proteins_to_find:
-                    print("prot>>",protein)
+                    print("Looking for protein:",protein)
                     pattern = r"\*\* START " + protein + r" \*\*(.*?)\*\* END " + protein + r" \*\*"
                     matches = re.findall(pattern, content, re.DOTALL)                    
                     for match in matches:
