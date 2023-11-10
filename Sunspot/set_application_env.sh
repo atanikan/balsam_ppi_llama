@@ -3,7 +3,7 @@
 module unload oneapi
 module load intel_compute_runtime/release/agama-devel-627
 #module load gcc/12.1.0
-export HF_HOME=/home/jmitche1/huggingface
+export HF_HOME=/gila/Aurora_deployment/70B-acc_fix_for_ppi/huggingface
 export HF_DATASETS_OFFLINE=1
 export TRANSFORMERS_OFFLINE=1
 export HF_EVALUATE_OFFLINE=1
@@ -33,6 +33,6 @@ export TOKENIZERS_PARALLELISM=false
 #source /soft/datascience/conda-2023-01-31/miniconda3/bin/activate
 #conda activate anl_llma70_acc_fix
 #conda activate /gila/Aurora_deployment/atanikanti/environments/balsam_llama_env
-module use -a /home/ftartagl/modulefiles
+module use -a /gila/Aurora_deployment/70B-acc_fix_for_ppi/modulefiles
 module load oneapi-testing/2023.2.003.PUBLIC_IDP49422
 source /gila/Aurora_deployment/atanikanti/70B-acc_fix/frameworks.ai.pytorch.torch-ccl/third_party/oneCCL/build/_install/env/vars.sh
