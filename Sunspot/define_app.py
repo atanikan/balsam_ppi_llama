@@ -1,4 +1,4 @@
-from balsam.api import ApplicationDefinition, Site, site_config
+from balsam.api import ApplicationDefinition, Site
 import os
 import re
 
@@ -40,9 +40,12 @@ class LlamaBashApp(ApplicationDefinition):
         """
         Read output log file from protein directory
         """
+        output_path = '/home/alien/Documents/code/mount_remote_system/data' #change
         llama_site = Site.objects.get(site_name)
-        workdir = os.path.join(llama_site.path,"data",self.job.workdir,"job,out")
-        with open(workdir,"r") as f:
+        workdir = os.path.join(llama_site.path,"data",self.job.workdir)
+        new_dir = os.path.join(output_path,workdir.split("/")[-1])
+        job_file = os.path.join(new_dir, 'job.out')
+        with open(job_file,"r") as f:
             lines = f.readlines()
             lines = self.nested_lists_to_string(lines)
             found_protein = self.fetch_between_markers(lines, protein)
