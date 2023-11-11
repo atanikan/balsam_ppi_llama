@@ -3,7 +3,7 @@ import os
 import re
 import time
 import multiprocessing
-from multiprocessing import Manager, Lock
+from multiprocessing import Manager
 import pandas as pd
 import shutil
 
@@ -23,7 +23,7 @@ bt = bt.reset_index(drop=True)
 st = pd.read_csv(string_file_path)
 st = st.reset_index(drop=True)
 known_proteins = df['search_words'].tolist()
-
+total_prot_count = 0
 
 output_path = '/home/alien/Documents/code/mount_remote_system/data' #change
 dot_file = '/home/alien/Documents/code/protein-graph-visualization-main/src/visg/static/data/interactions_full_run.dot' #change
@@ -102,7 +102,6 @@ def validate_and_generate_dot(protein1, protein2):
     # master_dot[edge] = new_content
     # #return master_dot[edge]
     # return (interaction, master_dot[edge]) 
-    print("Adding to dot file:",new_content)
     return new_content
 
 def find_interactions(directory, proteins, known_proteins, interactions_dict):
@@ -139,6 +138,9 @@ def find_interactions(directory, proteins, known_proteins, interactions_dict):
                                             content += f"{interaction}"
                                             content += "}"
                                             # Write the modified content back to the file
+                                            print("Adding to dot file:",interaction)
+                                            total_prot_count = total_prot_count + 2
+                                            print("Total proteins added:", total_prot_count)
                                             with open(dot_file, 'w') as file:
                                                 file.write(content)
                         if not match_found:
@@ -155,6 +157,9 @@ def find_interactions(directory, proteins, known_proteins, interactions_dict):
                                         content += f"{interaction}"
                                         content += "}"
                                         # Write the modified content back to the file
+                                        print("Adding to dot file:",interaction)
+                                        total_prot_count = total_prot_count + 1
+                                        print("Total proteins added:", total_prot_count)
                                         with open(dot_file, 'w') as file:
                                             file.write(content)
                         proteins_found.add(protein)
@@ -167,8 +172,6 @@ def main():
 
     manager = Manager()
     interactions_dict = manager.dict() 
-    lock = Lock()
-
     pool = multiprocessing.Pool(processes=multiprocessing.cpu_count())
     proteins_to_find = proteins_to_process()
     move_current_dot_to_backup()

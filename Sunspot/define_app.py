@@ -6,7 +6,6 @@ import pandas as pd
 site_name = "LlamaDemo"
 app_path = os.getcwd()
 proteins_file_path = os.path.join(app_path,"proteins.csv")
-df = pd.read_csv(proteins_file_path, names=['search_words'])
 
 class LlamaBashApp(ApplicationDefinition):
     site = site_name
@@ -33,13 +32,12 @@ class LlamaBashApp(ApplicationDefinition):
         """
         Look for protein between start and end
         """
-        # Extract content between first START and last END
-        pattern = r'\*\* START ' + re.escape(protein) + r' \*\*.*\*\* END ' + re.escape(protein) + r' \*\*'
-        match = re.search(pattern, lines, re.DOTALL)
-        if not match:
-            return None
-        between_markers = match.group()
-        return between_markers
+        pattern = r"\*\* START " + protein + r" \*\*(.*?)\*\* END " + protein + r" \*\*"
+        matches = re.findall(pattern, lines, re.DOTALL)
+        if matches:
+            return protein
+        return None
+
     
     def read_output_log(self,protein):
         """
@@ -49,39 +47,26 @@ class LlamaBashApp(ApplicationDefinition):
         with open(os.path.join(app_path,f"{workdir}/job.out"),"r") as f:
             lines = f.readlines()
             lines = self.nested_lists_to_string(lines)
-            lines = self.fetch_between_markers(lines, protein)
-        return lines
-    
-    def find_filtered_proteins(self, protein):
-        """
-        Finds all the proteins that interact with target
-        """
-        filtered_proteins = []
-
-        lines = self.read_output_log(protein)
-        # Loop through the words in the DataFrame
-
-        for word in df['search_words']:
-            if protein != word:
-                word_match = re.search(r'\b' + re.escape(word) + r'\b', lines)
-                if word_match:
-                    filtered_proteins.append(word)
-        return filtered_proteins
+            found_protein = self.fetch_between_markers(lines, protein)
+        return found_protein
+            
 
     def return_job_data(self):
         """
         Captures output and returns to job data
         """
-        targets = self.job.tags['target']
-        target_list = targets.split(",")
-        for targ in target_list:
-            filtered_proteins = self.find_filtered_proteins(targ)
-            if filtered_proteins:
-                interacting_proteins = list(set(filtered_proteins))
-            else:
-                interacting_proteins = "None Found"
-                print("interacting_proteins not found",interacting_proteins,"for target",targ)
-        self.job.state = "JOB_FINISHED"
+        #targets = self.job.tags['target']
+        protein_list = self.job.get_parameters()['protein_list'].split(",")
+        if protein_list:
+            found_proteins_list = []
+            for prot in protein_list:
+                found_protein = self.read_output_log(prot)
+                if found_protein:
+                    found_proteins_list.append(found_protein)
+            if len(found_proteins_list) == len(protein_list):
+                self.job.state = "JOB_FINISHED"
+                self.job.save()
+        self.job.state = "RESTART_READY"
         self.job.save()
 
     def handle_error(self):
