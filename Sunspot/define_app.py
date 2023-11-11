@@ -1,11 +1,8 @@
 from balsam.api import ApplicationDefinition, Site, site_config
 import os
 import re
-import pandas as pd
 
 site_name = "LlamaDemo"
-app_path = os.getcwd()
-proteins_file_path = os.path.join(app_path,"proteins.csv")
 
 class LlamaBashApp(ApplicationDefinition):
     site = site_name
@@ -43,8 +40,9 @@ class LlamaBashApp(ApplicationDefinition):
         """
         Read output log file from protein directory
         """
-        workdir = self.job.resolve_workdir(site_config.data_path)
-        with open(os.path.join(app_path,f"{workdir}/job.out"),"r") as f:
+        llama_site = Site.objects.get(site_name)
+        workdir = os.path.join(llama_site.path,"data",self.job.workdir,"job,out")
+        with open(workdir,"r") as f:
             lines = f.readlines()
             lines = self.nested_lists_to_string(lines)
             found_protein = self.fetch_between_markers(lines, protein)
