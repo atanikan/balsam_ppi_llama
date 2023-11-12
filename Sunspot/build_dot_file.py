@@ -113,6 +113,7 @@ def find_interactions(directory, proteins, known_proteins, interactions_dict):
     print(f"Checking directory: {directory}")  # Debugging print
     job_file = os.path.join(directory, 'job.out')
     proteins_to_find = set(proteins)  # Set of proteins to find interactions for.
+    total_prot_count = 0
     while proteins_to_find:
         if os.path.exists(job_file):
             with open(job_file, 'r') as file:
