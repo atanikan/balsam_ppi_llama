@@ -129,13 +129,13 @@ elastic_queue:
      submit_queue: "workq"
      job_mode: "mpi"
      use_backfill: False # Constrains BatchJobs to fit into idle backfill slots
-     min_wall_time_min: 120  # If `use_backfill`, ignore windows shorter than this duration
-     max_wall_time_min: 120 # If not `use_backfill`, submit BatchJobs for this walltime limit
+     min_wall_time_min: 85  # If `use_backfill`, ignore windows shorter than this duration
+     max_wall_time_min: 85 # If not `use_backfill`, submit BatchJobs for this walltime limit
      wall_time_pad_min: 1 # Subtract this walltime duration from all submitted BatchJobs
      min_num_nodes: 1  # Do not request fewer than this many nodes
-     max_num_nodes: 16 # Do not request more than this many nodes
+     max_num_nodes: 64 # Do not request more than this many nodes
      max_queue_wait_time_min: 60 # Delete BatchJobs waiting in queue for this long
-     max_queued_jobs: 1 # Maximum number of simultaneously queued jobs
+     max_queued_jobs: 10 # Maximum number of simultaneously queued jobs
 
 # Queue maintainer keeps a fixed number of BatchJobs queued at all times
 # Useful for extended campaigns.  Inherits filter_tags from above.

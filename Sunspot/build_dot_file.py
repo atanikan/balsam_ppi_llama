@@ -54,7 +54,12 @@ def move_current_dot_to_backup():
     new_file_name = f"{file_to_move.split('.')[0]}_{number_to_append}.{file_to_move.split('.')[-1]}"
     shutil.move(file_to_move, os.path.join(directory_for_previous_iterations, new_file_name)) 
     with open(dot_file, 'w') as out_f:
-        out_f.write('digraph G {\n}')
+        #out_f.write('digraph G {\n}')
+        with open("./seed_interactions_full_run.dot", "r") as read_f:
+            lines = read_f.readlines()
+            for line in lines:
+                out_f.write(line)
+        
 
 def validate_and_generate_dot(protein1, protein2):
     edge = f"{protein1} -> {protein2}"

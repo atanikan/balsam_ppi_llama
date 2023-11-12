@@ -56,7 +56,7 @@ class JobDefine():
     def define_job(self):
         df = pd.read_csv(proteins_file_path)
         # df.drop(0, inplace=True)
-        df = df.loc[0:299] #change this to run all; comment this out to run everything
+        df = df.loc[0:299] #change this to run all; comment it out to run everything
         jobs = [Job(app_id="LlamaBashApp",
             site_name=site_name,
             workdir=f'LlamaBashAppOutput/{n}',
@@ -64,7 +64,8 @@ class JobDefine():
             num_nodes=1,
             ranks_per_node=4,
             gpus_per_rank=1,
-            tags={"target":batch},
+            wall_time_min=80,
+            tags={"target":batch,"run":"demo"},
             node_packing_count = 1 #change this to set number of jobs in parallel on same node; set to 3 once fixed
         )for n, batch, ccl, cpu_bind in self.get_word_batches(df,100)] #Runs in batches of 100 proteins
         #for n,word in enumerate(df['search_words'])]
