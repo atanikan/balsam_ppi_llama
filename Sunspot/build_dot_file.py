@@ -84,15 +84,15 @@ def validate_and_generate_dot(protein1, protein2):
     stri = 0
 
     if( target == 0):
-        #print("\t",protein2, "NOT FOUND in STRING")
+        #("\t",protein2, "NOT FOUND in STRING")
         stri = -1
     elif (not st_hit.empty):
-        #print("\t",protein1, "FOUND in STRING ---->",protein2,"with score", st_hit['score'].to_string(index=False))
+        #("\t",protein1, "FOUND in STRING ---->",protein2,"with score", st_hit['score'].to_string(index=False))
         stri = st_hit['score'].astype(int).iloc[0]
     else:
         stri = 0
 
-    #    print("\t",protein1,"->", protein2," lpkg:",lpkg, " str:",stri)
+    #    ("\t",protein1,"->", protein2," lpkg:",lpkg, " str:",stri)
     if (lpkg == -1 and stri == -1):
         new_content = edge + ' [color=red, penwidth=5.0];\n'
     elif (lpkg >= 1 and stri == 0):
@@ -103,14 +103,14 @@ def validate_and_generate_dot(protein1, protein2):
         new_content = edge + ' [color=green, penwidth=2.0];\n'
     else:
         new_content = edge + ';\n'
-        #print(new_content) # not found in either
+        #(new_content) # not found in either
     # master_dot[edge] = new_content
     # #return master_dot[edge]
     # return (interaction, master_dot[edge]) 
     return new_content
 
 def find_interactions(directory, proteins, known_proteins, interactions_dict):
-    print(f"Checking directory: {directory}")  # Debugging print
+    (f"Checking directory: {directory}")  # Debugging 
     job_file = os.path.join(directory, 'job.out')
     proteins_to_find = set(proteins)  # Set of proteins to find interactions for.
     total_prot_count = 0
@@ -120,7 +120,7 @@ def find_interactions(directory, proteins, known_proteins, interactions_dict):
                 content = file.read()
                 proteins_found = set()  # Keep track of proteins found in this iteration.
                 for protein in proteins_to_find:
-                    print("Looking for protein:",protein)
+                    # print("Looking for protein:",protein)
                     pattern = r"\*\* START " + protein + r" \*\*(.*?)\*\* END " + protein + r" \*\*"
                     matches = re.findall(pattern, content, re.DOTALL)
                     if matches:
