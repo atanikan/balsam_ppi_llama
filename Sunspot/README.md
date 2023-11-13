@@ -7,6 +7,14 @@ Begin by cloning this repo on Sunspot.
 
 ## Create site
 
+First ensure you have environment variables for the http proxy set:
+```bash
+export HTTP_PROXY=http://proxy.alcf.anl.gov:3128
+export HTTPS_PROXY=http://proxy.alcf.anl.gov:3128
+export http_proxy=http://proxy.alcf.anl.gov:3128
+export https_proxy=http://proxy.alcf.anl.gov:3128
+```
+
 Load conda module:
 ```bash
 source /soft/datascience/conda-2023-01-31/miniconda3/bin/activate
@@ -53,5 +61,5 @@ balsam site ls
 
 Finally, create a directory under data which will be mounted on the demo laptop:
 ```bash
-mkdir /gila/Aurora_deployment/anl_llama/demo/LlamaDemo/data/LlamaBashApp
+mkdir /gila/Aurora_deployment/anl_llama/demo/LlamaDemo/data/LlamaBashAppOutput
 ```
