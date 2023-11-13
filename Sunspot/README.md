@@ -16,31 +16,42 @@ Login
 ```bash
 balsam login --force
 ```
-Copy and paste the URL in a browser and follow the instructions.  Note there is currently a bug in the command line prompt for login.  Ignore the warning messages.
+Copy and paste the URL returned by the `balsam login` command in a browser and follow the instructions.  Note there is currently a bug in the command line prompt for login.  Ignore the warning messages.
 
-Create site
+Go to a location on `/gila`, e.g.
+```bash
+cd /gila/Aurora_deployment/anl_llama/demo
+```
+
+Once you are at the place on `/gila` where you want the site directory to be placed, create the site.
 ```bash
 balsam site init -n LlamaDemo LlamaDemo
 ```
-Follow the instructions at the prompt.  Select Sunspot for the machine.
+
+Follow the instructions at the prompt.  Select Sunspot for the machine.  Put in `Aurora_deployment` for your project.
 
 ## Activate site
 
 Copy sample settings file to your site directory
 
 ```bash
-cp balsam_ppi_llama/sample_settings.yml /path/to/your/site
+cp /gila/Aurora_deployment/anl_llama/demo/balsam_ppi_llama/sample_settings.yml /gila/Aurora_deployment/anl_llama/demo/LlamaDemo
 ```
 
 Look-up which reservation queue is active for the day.  Edit the `settings.yml` file you just copied.  Under `elastic` set `submit_queue: "<todays_reservation>"`.
 
 Go to site directory and start site
 ```bash
-cd /path/to/your/site
+cd /gila/Aurora_deployment/anl_llama/demo/LlamaDemo
 balsam site start
 ```
 
 Check that the site is "active", i.e. communicating with the Balsam server:
 ```bash
 balsam site ls
+```
+
+Finally, create a directory under data which will be mounted on the demo laptop:
+```bash
+mkdir /gila/Aurora_deployment/anl_llama/demo/LlamaDemo/data/LlamaBashApp
 ```
