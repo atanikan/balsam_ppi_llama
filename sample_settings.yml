@@ -122,7 +122,6 @@ transfers:
 
 # Elastic Queue flexibly sizes and requests BatchJobs based on the net
 # job requirements 
-elastic_queue: null
 elastic_queue:
      service_period: 60  # Calculate and submit 1 BatchJob per `service_period` seconds
      submit_project: "Aurora_deployment"
