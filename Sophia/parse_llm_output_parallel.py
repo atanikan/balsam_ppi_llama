@@ -44,19 +44,31 @@ def process_batch_lines(lines_batch, proteins_set):
             query_protein = parts[1].upper()
             
             # Extract response content
-            if 'response' in response and 'choices' in response['response']:
-                choices = response['response'].get('choices', [])
-                if choices and 'message' in choices[0]:
-                    content = choices[0]['message'].get('content', '')
-                    
-                    # Extract interacting proteins from the content
-                    interacting_proteins = extract_proteins_from_text(content, proteins_set)
-                    
-                    # Filter out self-interactions
-                    valid_interactions = [p for p in interacting_proteins if p != query_protein]
-                    
-                    if valid_interactions:
-                        batch_interactions.append((query_protein, valid_interactions))
+            content = None
+            if 'response' in response:
+                resp = response['response']
+                
+                # Handle real vLLM format with 'body' layer
+                if 'body' in resp and 'choices' in resp['body']:
+                    choices = resp['body']['choices']
+                    if choices and 'message' in choices[0]:
+                        content = choices[0]['message'].get('content', '')
+                
+                # Fallback to direct format (for test data)
+                elif 'choices' in resp:
+                    choices = resp['choices']
+                    if choices and 'message' in choices[0]:
+                        content = choices[0]['message'].get('content', '')
+            
+            if content:
+                # Extract interacting proteins from the content
+                interacting_proteins = extract_proteins_from_text(content, proteins_set)
+                
+                # Filter out self-interactions
+                valid_interactions = [p for p in interacting_proteins if p != query_protein]
+                
+                if valid_interactions:
+                    batch_interactions.append((query_protein, valid_interactions))
                         
         except json.JSONDecodeError:
             print(f"Warning: Could not parse line {line_num}")
@@ -246,22 +258,34 @@ class ProteinInteractionParserParallel:
                     query_protein = parts[1].upper()
                     
                     # Extract response content
-                    if 'response' in response and 'choices' in response['response']:
-                        choices = response['response'].get('choices', [])
-                        if choices and 'message' in choices[0]:
-                            content = choices[0]['message'].get('content', '')
-                            
-                            # Extract interacting proteins from the content
-                            interacting_proteins = extract_proteins_from_text(content, self.proteins_set)
-                            
-                            # Add interactions (excluding self-interactions)
-                            initial_count = len(self.interactions)
-                            for interacting_protein in interacting_proteins:
-                                if interacting_protein != query_protein:
-                                    self.interactions.add((query_protein, interacting_protein))
-                            
-                            # Track new interactions found
-                            interactions_found += len(self.interactions) - initial_count
+                    content = None
+                    if 'response' in response:
+                        resp = response['response']
+                        
+                        # Handle real vLLM format with 'body' layer
+                        if 'body' in resp and 'choices' in resp['body']:
+                            choices = resp['body']['choices']
+                            if choices and 'message' in choices[0]:
+                                content = choices[0]['message'].get('content', '')
+                        
+                        # Fallback to direct format (for test data)
+                        elif 'choices' in resp:
+                            choices = resp['choices']
+                            if choices and 'message' in choices[0]:
+                                content = choices[0]['message'].get('content', '')
+                    
+                    if content:
+                        # Extract interacting proteins from the content
+                        interacting_proteins = extract_proteins_from_text(content, self.proteins_set)
+                        
+                        # Add interactions (excluding self-interactions)
+                        initial_count = len(self.interactions)
+                        for interacting_protein in interacting_proteins:
+                            if interacting_protein != query_protein:
+                                self.interactions.add((query_protein, interacting_protein))
+                        
+                        # Track new interactions found
+                        interactions_found += len(self.interactions) - initial_count
                                     
                 except json.JSONDecodeError:
                     print(f"Warning: Could not parse line {processed_lines}: {line[:100]}...")

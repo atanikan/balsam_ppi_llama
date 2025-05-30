@@ -334,10 +334,25 @@ def parse_batch_output(batch_file, proteins_set):
                 data = json.loads(line.strip())
                 
                 # Extract content from vLLM batch response format
-                if 'response' in data and 'choices' in data['response']:
-                    content = data['response']['choices'][0]['message']['content']
-                else:
-                    print(f"Warning: Unexpected format at line {line_num}")
+                # Real vLLM format has: response.body.choices[0].message.content
+                content = None
+                if 'response' in data:
+                    response = data['response']
+                    
+                    # Handle real vLLM format with 'body' layer
+                    if 'body' in response and 'choices' in response['body']:
+                        choices = response['body']['choices']
+                        if choices and 'message' in choices[0]:
+                            content = choices[0]['message'].get('content', '')
+                    
+                    # Fallback to direct format (for test data)
+                    elif 'choices' in response:
+                        choices = response['choices']
+                        if choices and 'message' in choices[0]:
+                            content = choices[0]['message'].get('content', '')
+                
+                if not content:
+                    print(f"Warning: No content found at line {line_num}")
                     continue
                 
                 # Extract mentioned proteins using word boundaries
