@@ -378,55 +378,16 @@ class ProteinInteractionParserParallel:
 
 
 def main():
-    parser = argparse.ArgumentParser(
-        description="Parse LLM batch output with optional parallel processing"
-    )
-    parser.add_argument(
-        "--batch-output",
-        required=True,
-        help="Path to the batch output JSONL file from vLLM"
-    )
-    parser.add_argument(
-        "--proteins-csv",
-        default="data/proteins.csv",
-        help="Path to proteins.csv file (default: data/proteins.csv)"
-    )
-    parser.add_argument(
-        "--big-table-csv",
-        default="data/big_table.csv",
-        help="Path to big_table.csv file (default: data/big_table.csv)"
-    )
-    parser.add_argument(
-        "--string-csv",
-        default="data/string.csv",
-        help="Path to string.csv file (default: data/string.csv)"
-    )
-    parser.add_argument(
-        "--output-dot",
-        default="llm_protein_interactions.dot",
-        help="Output DOT file path (default: llm_protein_interactions.dot)"
-    )
-    parser.add_argument(
-        "--parallel",
-        action="store_true",
-        help="Use parallel processing for large files"
-    )
-    parser.add_argument(
-        "--workers",
-        type=int,
-        help="Number of worker processes (default: CPU count, max 8)"
-    )
-    parser.add_argument(
-        "--batch-size",
-        type=int,
-        default=1000,
-        help="Lines per batch for parallel processing (default: 1000)"
-    )
-    parser.add_argument(
-        "--verbose",
-        action="store_true",
-        help="Print detailed statistics"
-    )
+    parser = argparse.ArgumentParser(description='Parse vLLM batch output for protein interactions (with optional parallel processing)')
+    parser.add_argument('--batch-output', required=True, help='vLLM batch output JSONL file')
+    parser.add_argument('--output-dot', required=True, help='Output DOT file path')
+    parser.add_argument('--proteins-csv', default='data/proteins.csv', help='Proteins CSV file')
+    parser.add_argument('--big-table-csv', default='data/big_table.csv', help='Big table CSV file')
+    parser.add_argument('--string-csv', default='data/string.csv', help='String CSV file')
+    parser.add_argument('--parallel', action='store_true', help='Enable parallel processing')
+    parser.add_argument('--workers', type=int, default=None, help='Number of worker processes (default: CPU count, max 8)')
+    parser.add_argument('--chunk-size', type=int, default=1000, help='Lines per chunk for parallel processing')
+    parser.add_argument('--verbose', action='store_true', help='Print detailed statistics')
     
     args = parser.parse_args()
     
@@ -450,7 +411,7 @@ def main():
             parser_instance.parse_batch_output_parallel(
                 args.batch_output,
                 num_workers=args.workers,
-                batch_size=args.batch_size
+                batch_size=args.chunk_size
             )
         else:
             parser_instance.parse_batch_output_serial(args.batch_output)

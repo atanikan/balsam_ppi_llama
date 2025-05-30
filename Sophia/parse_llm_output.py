@@ -11,6 +11,8 @@ import pandas as pd
 import os
 import re
 from pathlib import Path
+import time
+from collections import defaultdict
 
 
 class ProteinInteractionParser:
@@ -283,6 +285,125 @@ class ProteinInteractionParser:
         print("="*50)
 
 
+def read_csv_to_dict(csv_path, col1='col1', col2='col2', score='score'):
+    """Read CSV file into dictionary for fast lookups."""
+    result = {}
+    try:
+        with open(csv_path, 'r') as f:
+            header = f.readline().strip().split(',')
+            col1_idx = header.index(col1)
+            col2_idx = header.index(col2)
+            score_idx = header.index(score)
+            
+            for line in f:
+                parts = line.strip().split(',')
+                if len(parts) > max(col1_idx, col2_idx, score_idx):
+                    key = (parts[col1_idx], parts[col2_idx])
+                    result[key] = int(parts[score_idx])
+        return result
+    except Exception as e:
+        print(f"Warning: Could not read {csv_path}: {e}")
+        return {}
+
+
+def load_proteins(proteins_csv):
+    """Load protein names from CSV."""
+    proteins = set()
+    try:
+        with open(proteins_csv, 'r') as f:
+            # Skip header
+            next(f)
+            for line in f:
+                protein = line.strip()
+                if protein:
+                    proteins.add(protein)
+        return proteins
+    except Exception as e:
+        print(f"Warning: Could not read {proteins_csv}: {e}")
+        return set()
+
+
+def parse_batch_output(batch_file, proteins_set):
+    """Parse vLLM batch output and extract protein interactions."""
+    interactions = set()
+    processed_responses = 0
+    
+    with open(batch_file, 'r') as f:
+        for line_num, line in enumerate(f, 1):
+            try:
+                data = json.loads(line.strip())
+                
+                # Extract content from vLLM batch response format
+                if 'response' in data and 'choices' in data['response']:
+                    content = data['response']['choices'][0]['message']['content']
+                else:
+                    print(f"Warning: Unexpected format at line {line_num}")
+                    continue
+                
+                # Extract mentioned proteins using word boundaries
+                mentioned_proteins = set()
+                for protein in proteins_set:
+                    if re.search(r'\b' + re.escape(protein) + r'\b', content, re.IGNORECASE):
+                        mentioned_proteins.add(protein)
+                
+                # Create pairwise interactions
+                proteins_list = list(mentioned_proteins)
+                for i in range(len(proteins_list)):
+                    for j in range(i+1, len(proteins_list)):
+                        interactions.add((proteins_list[i], proteins_list[j]))
+                
+                processed_responses += 1
+                
+                if processed_responses % 100 == 0:
+                    print(f"Processed {processed_responses:,} responses, found {len(interactions):,} unique interactions")
+                    
+            except json.JSONDecodeError:
+                print(f"Warning: Invalid JSON at line {line_num}")
+                continue
+            except Exception as e:
+                print(f"Warning: Error processing line {line_num}: {e}")
+                continue
+    
+    return interactions, processed_responses
+
+
+def validate_interaction(protein1, protein2, big_table_dict, string_dict):
+    """Validate interaction and determine edge color."""
+    # Check both directions in the databases
+    lpkg_score = big_table_dict.get((protein1, protein2), big_table_dict.get((protein2, protein1), -1))
+    string_score = string_dict.get((protein1, protein2), string_dict.get((protein2, protein1), -1))
+    
+    # Apply validation logic from original parallel_dot_construction.py
+    if lpkg_score == -1 and string_score == -1:
+        return "red", 5.0  # Novel LLM prediction
+    elif lpkg_score >= 1 and string_score == 0:
+        return "orange", 5.0  # In big_table only
+    elif lpkg_score == -1 and string_score > 0:
+        return "blue", 2.0  # In string only
+    elif lpkg_score > 500 and string_score > 500:
+        return "green", 2.0  # High confidence in both
+    else:
+        return "black", 1.0  # Default
+
+
+def generate_dot_file(interactions, big_table_dict, string_dict, output_file):
+    """Generate DOT file with color-coded edges."""
+    print(f"Generating DOT file: {output_file}")
+    
+    with open(output_file, 'w') as f:
+        f.write('digraph G {\n')
+        
+        edge_count = 0
+        for protein1, protein2 in sorted(interactions):
+            color, width = validate_interaction(protein1, protein2, big_table_dict, string_dict)
+            f.write(f'  "{protein1}" -> "{protein2}" [color={color}, penwidth={width}];\n')
+            edge_count += 1
+        
+        f.write('}\n')
+    
+    print(f"Generated DOT file with {edge_count:,} edges")
+
+
 def main():
     parser = argparse.ArgumentParser(
         description="Parse LLM batch output and generate protein interaction network DOT file"
@@ -320,41 +441,47 @@ def main():
     
     args = parser.parse_args()
     
-    # Check if required files exist
-    for file_path, name in [(args.batch_output, "batch output"), (args.proteins_csv, "proteins CSV")]:
-        if not os.path.exists(file_path):
-            print(f"Error: {name} file '{file_path}' not found.")
-            return 1
+    start_time = time.time()
     
-    # Initialize parser
-    try:
-        parser = ProteinInteractionParser(args.proteins_csv, args.big_table_csv, args.string_csv)
-        print(f"Loaded {len(parser.proteins_set)} proteins from {args.proteins_csv}")
-    except Exception as e:
-        print(f"Error initializing parser: {e}")
-        return 1
+    print("🧬 vLLM Protein Interaction Parser (Serial)")
+    print("=" * 50)
+    
+    # Load validation databases
+    print("📊 Loading validation databases...")
+    load_start = time.time()
+    big_table_dict = read_csv_to_dict(args.big_table_csv)
+    string_dict = read_csv_to_dict(args.string_csv)
+    proteins_set = load_proteins(args.proteins_csv)
+    load_time = time.time() - load_start
+    
+    print(f"   Proteins: {len(proteins_set):,}")
+    print(f"   Big table entries: {len(big_table_dict):,}")
+    print(f"   String entries: {len(string_dict):,}")
+    print(f"   Load time: {load_time:.2f}s")
     
     # Parse batch output
-    try:
-        parser.parse_batch_output(args.batch_output)
-        print(f"Parsed batch output from {args.batch_output}")
-    except Exception as e:
-        print(f"Error parsing batch output: {e}")
-        return 1
+    print(f"\n🔍 Parsing batch output: {args.batch_output}")
+    parse_start = time.time()
+    interactions, processed_responses = parse_batch_output(args.batch_output, proteins_set)
+    parse_time = time.time() - parse_start
+    
+    print(f"   Processed responses: {processed_responses:,}")
+    print(f"   Total unique interactions: {len(interactions):,}")
+    print(f"   Parse time: {parse_time:.2f}s")
+    print(f"   Rate: {processed_responses/parse_time:.1f} responses/sec")
     
     # Generate DOT file
-    try:
-        parser.generate_dot_file(args.output_dot)
-        print(f"Generated DOT file: {args.output_dot}")
-    except Exception as e:
-        print(f"Error generating DOT file: {e}")
-        return 1
+    print(f"\n📝 Generating visualization...")
+    dot_start = time.time()
+    generate_dot_file(interactions, big_table_dict, string_dict, args.output_dot)
+    dot_time = time.time() - dot_start
     
-    # Print statistics
-    if args.verbose:
-        parser.print_statistics()
+    total_time = time.time() - start_time
     
-    return 0
+    print(f"\n🎉 Complete!")
+    print(f"   DOT generation time: {dot_time:.2f}s") 
+    print(f"   Total execution time: {total_time:.2f}s")
+    print(f"   Output: {args.output_dot}")
 
 
 if __name__ == "__main__":

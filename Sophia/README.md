@@ -1,162 +1,168 @@
-# Protein-Protein Interaction Batch Prompt Generator
+# Protein-Protein Interaction Discovery Pipeline
 
-This directory contains scripts for generating batch API prompts to query Large Language Models about protein-protein interactions and parsing the results to create protein interaction networks.
+A comprehensive pipeline for discovering protein-protein interactions using Large Language Models (LLMs) with vLLM batch API processing.
 
-## File Organization
+## Overview
 
-### Main Pipeline Files
-- `generate_batch_prompts.py` - Generate batch prompts for vLLM
-- `parse_llm_output.py` - Parse LLM responses (optimized)
-- `parse_llm_output_parallel.py` - Parse LLM responses (parallel processing)
-- `requirements.txt` - Python dependencies
-- `README.md` - This documentation
+This pipeline generates prompts for protein interaction discovery, processes them through vLLM batch API, and parses the responses to extract and visualize protein interaction networks.
 
-### Test Directory (`test/`)
-- `generate_fake_outputs.py` - Generate fake LLM responses for testing
-- `demo.sh` - Complete pipeline demonstration
-- `README.md` - Test-specific documentation
-- Test data files (`.jsonl`, `.dot`)
+## Features
 
-## Workflow Overview
-
-1. **Generate batch prompts** using `generate_batch_prompts.py`
-2. **Submit to vLLM batch API** for processing
-3. **Parse results** using `parse_llm_output.py` to create DOT network files
+- **Batch Prompt Generation**: Creates vLLM-compatible JSONL prompts with configurable iterations
+- **Optimized Parsing**: Both serial and parallel parsers with performance optimizations
+- **Network Visualization**: Generates color-coded DOT files for network analysis
+- **Validation Integration**: Cross-references predictions with existing databases
+- **Performance Benchmarking**: Comprehensive testing infrastructure
 
 ## Quick Start
 
-### Generate Prompts
+1. **Generate batch prompts:**
+   ```bash
+   python generate_batch_prompts.py --proteins-csv data/proteins.csv --output prompts.jsonl
+   ```
+
+2. **Submit to vLLM batch API** (external step)
+
+3. **Parse responses and generate network:**
+   ```bash
+   # For small datasets (< 5,000 responses)
+   python parse_llm_output.py --batch-output responses.jsonl --output-dot network.dot
+   
+   # For large datasets (≥ 5,000 responses)  
+   python parse_llm_output_parallel.py --batch-output responses.jsonl --output-dot network.dot --parallel
+   ```
+
+## Files
+
+### Core Pipeline
+- `generate_batch_prompts.py` - Generate vLLM batch prompts
+- `parse_llm_output.py` - Optimized serial parser 
+- `parse_llm_output_parallel.py` - Enhanced parallel parser
+- `requirements.txt` - Python dependencies
+
+### Testing & Benchmarking
+- `test/generate_fake_outputs.py` - Generate test data
+- `test/core_benchmark.py` - Algorithm performance testing
+- `test/lightweight_benchmark.py` - Minimal dependency benchmarking
+- `test/benchmark_parsers.py` - Full-scale performance comparison
+- `test/quick_benchmark.py` - Fast comparison testing
+- `test/demo.sh` - Complete pipeline demonstration
+
+### Documentation
+- `PERFORMANCE_ANALYSIS.md` - Comprehensive performance analysis
+- `test/README.md` - Testing infrastructure documentation
+
+## Performance Characteristics
+
+### Serial vs Parallel Parsing
+
+**Use Serial Parser (`parse_llm_output.py`) when:**
+- Processing < 5,000 responses
+- Working with small to medium datasets
+- Prioritizing simplicity and lower memory usage
+
+**Use Parallel Parser (`parse_llm_output_parallel.py`) when:**
+- Processing ≥ 5,000 responses  
+- Working with large-scale datasets
+- CPU cores are available for parallel processing
+
+### Benchmarking Results
+
+Based on comprehensive testing:
+
+| Data Size | Best Parser | Performance Gain |
+|-----------|-------------|------------------|
+| < 1,000 lines | Serial | 2-7x faster |
+| 1,000-5,000 lines | Serial | 1-3x faster |
+| ≥ 5,000 lines | Parallel | 1.3x+ faster |
+
+See `PERFORMANCE_ANALYSIS.md` for detailed analysis.
+
+## Network Visualization
+
+The pipeline generates color-coded DOT files with the following scheme:
+
+- 🔴 **Red**: Novel LLM predictions (not in validation databases)
+- 🟠 **Orange**: Found in big_table.csv only
+- 🔵 **Blue**: Found in string.csv only  
+- 🟢 **Green**: High confidence (found in both databases with high scores)
+- ⚫ **Black**: Default (found in databases with lower scores)
+
+## Configuration
+
+### Prompt Generation Options
 ```bash
-python Sophia/generate_batch_prompts.py --max-proteins 100 --iterations 3
+python generate_batch_prompts.py \
+  --proteins-csv data/proteins.csv \
+  --output batch_prompts.jsonl \
+  --iterations 3 \
+  --model-name "meta-llama/Meta-Llama-3.1-8B-Instruct"
 ```
 
-### Parse Results (after getting LLM responses)
+### Parser Options
 ```bash
-python Sophia/parse_llm_output.py --batch-output your_responses.jsonl --verbose
+python parse_llm_output_parallel.py \
+  --batch-output responses.jsonl \
+  --output-dot network.dot \
+  --proteins-csv data/proteins.csv \
+  --big-table-csv data/big_table.csv \
+  --string-csv data/string.csv \
+  --parallel \
+  --workers 4
 ```
 
-### Run Demo/Test
-```bash
-bash Sophia/test/demo.sh
-```
+## Data Requirements
 
-## Scripts
-
-### 1. `generate_batch_prompts.py` - Prompt Generator
-
-Reads protein names from a CSV file and generates JSONL format prompts suitable for vLLM batch API processing.
-
-#### Features
-
-- Reads protein names from `data/proteins.csv`
-- Generates multiple iterations per protein to reduce hallucination
-- Outputs JSONL format compatible with vLLM batch API
-- Focused prompts designed for easy parsing
-- Optimized for generating protein names that exist in your dataset
-
-#### Arguments
-
-- `--input-file`: Path to proteins CSV file (default: `data/proteins.csv`)
-- `--output-file`: Output JSONL file path (default: `protein_interaction_batch_prompts.jsonl`)
-- `--iterations`: Number of iterations per protein (default: 3)
-- `--max-proteins`: Limit number of proteins to process (for testing)
-- `--model`: Model name for batch requests (default: `meta-llama/Meta-Llama-3.1-8B-Instruct`)
-- `--max-tokens`: Maximum tokens per response (default: 1000)
-
-### 2. `parse_llm_output.py` - Output Parser
-
-Parses the LLM batch output, extracts protein interactions, validates them against your protein dataset, and generates a DOT file using the same color scheme as `parallel_dot_construction.py`.
-
-#### Features
-
-- Parses vLLM batch API output JSONL files
-- Extracts protein names that match your `proteins.csv` dataset
-- Validates interactions against `big_table.csv` and `string.csv`
-- Optimized with O(1) database lookups and efficient I/O
-- Generates DOT files with color-coded confidence levels
-
-#### Arguments
-
-- `--batch-output`: Path to vLLM batch output JSONL file (required)
-- `--proteins-csv`: Path to proteins.csv file (default: `data/proteins.csv`)
-- `--big-table-csv`: Path to big_table.csv file (default: `data/big_table.csv`)
-- `--string-csv`: Path to string.csv file (default: `data/string.csv`)
-- `--output-dot`: Output DOT file path (default: `llm_protein_interactions.dot`)
-- `--verbose`: Print detailed statistics
-
-### 3. `parse_llm_output_parallel.py` - Parallel Parser
-
-Enhanced version with optional parallel processing for large batch files.
-
-#### Additional Arguments
-
-- `--parallel`: Use parallel processing for large files
-- `--workers`: Number of worker processes (default: CPU count, max 8)
-- `--batch-size`: Lines per batch for parallel processing (default: 1000)
-
-## Performance Guidance
-
-| File Size | Recommended Parser | Expected Speedup |
-|-----------|-------------------|------------------|
-| < 10,000 lines | `parse_llm_output.py` | Good enough |
-| 10,000 - 100,000 lines | `parse_llm_output_parallel.py` | 2-4x faster |
-| > 100,000 lines | `parse_llm_output_parallel.py --parallel` | 3-8x faster |
-
-## Color Scheme Legend
-
-When viewing the generated DOT file:
-
-- **Red edges**: Novel LLM predictions (not in existing databases)
-- **Orange edges**: Confirmed by big_table.csv only
-- **Blue edges**: Confirmed by string.csv only  
-- **Green edges**: High confidence (confirmed by both databases)
-- **Black edges**: Low confidence interactions
-
-## Example Usage
-
-### Basic Workflow
-```bash
-# 1. Generate prompts
-python Sophia/generate_batch_prompts.py --max-proteins 50
-
-# 2. Submit to vLLM batch API (external step)
-
-# 3. Parse results
-python Sophia/parse_llm_output.py --batch-output results.jsonl --verbose
-
-# 4. Visualize
-dot -Tpng llm_protein_interactions.dot -o protein_network.png
-```
-
-### Large File Processing
-```bash
-python Sophia/parse_llm_output_parallel.py \
-    --batch-output large_results.jsonl \
-    --parallel \
-    --workers 6 \
-    --verbose
-```
-
-## Requirements
-
-- Python 3.7+
-- pandas
-- Standard library modules (argparse, json, os, pathlib, re)
-- Graphviz (for visualization)
-
-Install requirements:
-```bash
-pip install -r Sophia/requirements.txt
-```
+- `data/proteins.csv` - List of proteins to analyze
+- `data/big_table.csv` - Validation database (optional)
+- `data/string.csv` - STRING database export (optional)
 
 ## Testing
 
-See `test/README.md` for testing instructions and demo usage.
+Run the test suite:
+```bash
+# Quick performance comparison
+python test/quick_benchmark.py
 
-## Next Steps
+# Comprehensive algorithm testing
+python test/core_benchmark.py
 
-After generating the DOT file, you can:
-1. Visualize it using Graphviz tools
-2. Analyze the network properties
-3. Focus on red edges for novel discoveries
-4. Cross-reference green edges for validation 
+# Lightweight benchmarking (minimal dependencies)
+python test/lightweight_benchmark.py
+
+# Complete pipeline demo
+bash test/demo.sh
+```
+
+## Installation
+
+```bash
+pip install -r requirements.txt
+```
+
+## Dependencies
+
+- pandas - Data manipulation
+- Standard library: json, re, argparse, multiprocessing, time
+
+## Architecture
+
+The pipeline follows a modular architecture:
+
+1. **Input Layer**: Protein datasets and configuration
+2. **Generation Layer**: vLLM prompt creation
+3. **Processing Layer**: LLM batch API (external)
+4. **Parsing Layer**: Response extraction and validation
+5. **Output Layer**: Network visualization and analysis
+
+## Contributing
+
+The pipeline includes comprehensive testing infrastructure. When contributing:
+
+1. Run benchmarks to ensure performance is maintained
+2. Add tests for new functionality
+3. Update documentation for user-facing changes
+
+## License
+
+This project is part of the BALSAM protein-protein interaction research pipeline. 
