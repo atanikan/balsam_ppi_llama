@@ -67,6 +67,7 @@ class ProteinInteractionParser:
     def extract_proteins_from_text(self, text):
         """
         Extract protein names from LLM response text.
+        Enhanced to handle markdown formatting and various patterns.
         
         Args:
             text (str): LLM response text
@@ -80,20 +81,28 @@ class ProteinInteractionParser:
         # Split text into lines and process each line
         lines = text.split('\n')
         for line in lines:
-            # Look for patterns like "PROTEIN_NAME - description" or just protein names
             line = line.strip()
             if not line:
                 continue
                 
+            # Remove markdown formatting first
+            line_clean = re.sub(r'\*\*([^*]+)\*\*', r'\1', line)  # **protein** -> protein
+            line_clean = re.sub(r'\*([^*]+)\*', r'\1', line_clean)  # *protein* -> protein
+            
             # Try to extract protein name from various formats
-            # Format: "PROTEIN_NAME - description"
-            if ' - ' in line:
-                potential_protein = line.split(' - ')[0].strip().upper()
-                if potential_protein in self.proteins_set:
-                    found_proteins.append(potential_protein)
+            # Format: "PROTEIN_NAME - description" or "PROTEIN_NAME (description)"
+            for pattern in [r'^([A-Za-z0-9]+)\s*[-\(]', r'^(\d+\.\s*)?[*]*([A-Za-z0-9]+)[*]*\s*[-\(]']:
+                match = re.search(pattern, line_clean)
+                if match:
+                    # Get the last group that contains the protein name
+                    potential_protein = match.groups()[-1].strip().upper()
+                    if potential_protein in self.proteins_set and len(potential_protein) > 1:
+                        found_proteins.append(potential_protein)
+                        break
             
             # Look for any words in the line that match our protein set
-            words = re.findall(r'\b[A-Za-z0-9]+\b', line)
+            # Use word boundaries to avoid partial matches
+            words = re.findall(r'\b[A-Za-z0-9]+\b', line_clean)
             for word in words:
                 word_upper = word.upper()
                 if word_upper in self.proteins_set and len(word_upper) > 2:  # Avoid very short matches
@@ -123,7 +132,7 @@ class ProteinInteractionParser:
                 
                 # Progress tracking
                 if processed_lines % 1000 == 0 or processed_lines == total_lines:
-                    print(f"Processed {processed_lines}/{total_lines} lines, found {interactions_found} interactions")
+                    print(f"Processed {processed_lines:,}/{total_lines:,} lines, found {interactions_found:,} interactions")
                 
                 try:
                     response = json.loads(line.strip())
@@ -140,22 +149,34 @@ class ProteinInteractionParser:
                     query_protein = parts[1].upper()
                     
                     # Extract response content
-                    if 'response' in response and 'choices' in response['response']:
-                        choices = response['response'].get('choices', [])
-                        if choices and 'message' in choices[0]:
-                            content = choices[0]['message'].get('content', '')
-                            
-                            # Extract interacting proteins from the content
-                            interacting_proteins = self.extract_proteins_from_text(content)
-                            
-                            # Add interactions (excluding self-interactions)
-                            initial_count = len(self.interactions)
-                            for interacting_protein in interacting_proteins:
-                                if interacting_protein != query_protein:
-                                    self.interactions.add((query_protein, interacting_protein))
-                            
-                            # Track new interactions found
-                            interactions_found += len(self.interactions) - initial_count
+                    content = None
+                    if 'response' in response:
+                        resp = response['response']
+                        
+                        # Handle real vLLM format with 'body' layer
+                        if 'body' in resp and 'choices' in resp['body']:
+                            choices = resp['body']['choices']
+                            if choices and 'message' in choices[0]:
+                                content = choices[0]['message'].get('content', '')
+                        
+                        # Fallback to direct format (for test data)
+                        elif 'choices' in resp:
+                            choices = resp['choices']
+                            if choices and 'message' in choices[0]:
+                                content = choices[0]['message'].get('content', '')
+                    
+                    if content:
+                        # Extract interacting proteins from the content
+                        interacting_proteins = self.extract_proteins_from_text(content)
+                        
+                        # Add interactions (excluding self-interactions)
+                        initial_count = len(self.interactions)
+                        for interacting_protein in interacting_proteins:
+                            if interacting_protein != query_protein:
+                                self.interactions.add((query_protein, interacting_protein))
+                        
+                        # Track new interactions found
+                        interactions_found += len(self.interactions) - initial_count
                                     
                 except json.JSONDecodeError:
                     print(f"Warning: Could not parse line {processed_lines}: {line[:100]}...")
@@ -164,7 +185,7 @@ class ProteinInteractionParser:
                     print(f"Warning: Error processing line {processed_lines}: {e}")
                     continue
         
-        print(f"Parsing complete! Found {len(self.interactions)} unique interactions from {total_lines} responses.")
+        print(f"Parsing complete! Found {len(self.interactions):,} unique interactions from {total_lines:,} responses.")
     
     def validate_and_generate_dot_content(self, protein1, protein2):
         """

@@ -83,7 +83,7 @@ def process_batch_lines(lines_batch, proteins_set):
 def extract_proteins_from_text(text, proteins_set):
     """
     Extract protein names from LLM response text.
-    Optimized version with compiled regex patterns.
+    Enhanced to handle markdown formatting and various patterns.
     
     Args:
         text (str): LLM response text
@@ -105,15 +105,24 @@ def extract_proteins_from_text(text, proteins_set):
         if not line:
             continue
             
+        # Remove markdown formatting first
+        line_clean = re.sub(r'\*\*([^*]+)\*\*', r'\1', line)  # **protein** -> protein
+        line_clean = re.sub(r'\*([^*]+)\*', r'\1', line_clean)  # *protein* -> protein
+        
         # Try to extract protein name from various formats
-        # Format: "PROTEIN_NAME - description"
-        if ' - ' in line:
-            potential_protein = line.split(' - ')[0].strip().upper()
-            if potential_protein in proteins_set:
-                found_proteins.append(potential_protein)
+        # Format: "PROTEIN_NAME - description" or "PROTEIN_NAME (description)"
+        for pattern in [r'^([A-Za-z0-9]+)\s*[-\(]', r'^(\d+\.\s*)?[*]*([A-Za-z0-9]+)[*]*\s*[-\(]']:
+            match = re.search(pattern, line_clean)
+            if match:
+                # Get the last group that contains the protein name
+                potential_protein = match.groups()[-1].strip().upper()
+                if potential_protein in proteins_set and len(potential_protein) > 1:
+                    found_proteins.append(potential_protein)
+                    break
         
         # Look for any words in the line that match our protein set
-        words = word_pattern.findall(line)
+        # Use word boundaries to avoid partial matches
+        words = word_pattern.findall(line_clean)
         for word in words:
             word_upper = word.upper()
             if word_upper in proteins_set and len(word_upper) > 2:  # Avoid very short matches
